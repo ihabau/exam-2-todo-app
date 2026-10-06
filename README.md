@@ -114,7 +114,7 @@ array/object — never mutate in place.**
 
 ## Exam requirements (GitHub & delivery)
 
-- [ ] New **public** repo (not a fork of the course repo).
+- [x] New **public** repo (not a fork of the course repo): <https://github.com/ihabau/exam-2-todo-app>
 - [ ] **At least 5 commits** showing the app built up step by step (the exam spec: "Make **at least 5
       commits** showing how the application was built up step by step during development").
 - [ ] `README.md` filled in — in your own words.
@@ -124,9 +124,11 @@ array/object — never mutate in place.**
 
 Target: **5** commits.
 
-`git log --oneline` count: **0 / 5** — commits made and pushed so far.
+`git log --oneline` count: **1 / 5** — commits made and pushed so far:
+[`66b8815`](https://github.com/ihabau/exam-2-todo-app/commit/66b8815) · repo:
+<https://github.com/ihabau/exam-2-todo-app>
 
-- [ ] Commit 1 — initial scaffold (`npm create vite`, git init)
+- [x] Commit 1 — initial scaffold (Vite + React, git init, pushed) ✓
 - [ ] Commit 2 — add form (add task, block empty)
 - [ ] Commit 3 — toggle done / pending
 - [ ] Commit 4 — delete task
