@@ -134,14 +134,7 @@ array/object — never mutate in place.**
       commits** showing how the application was built up step by step during development").
 - [x] `README.md` filled in — answer sections drafted (see below); rewrite in your own words before
       submitting so you can defend them on camera.
-- [ ] 3–5 min Teams video; link pasted into section 5 below.
-
-### Left to do before submission
-
-- [ ] Re-read the four answer sections and reword them in my own voice (the exam's own-work rule).
-- [ ] Record the 3–5 min Teams video (demo add / toggle / delete / edit / history).
-- [ ] Paste the Teams link into **README answer section 5**.
-- [ ] Confirm the repo is public and the latest `main` is pushed.
+- [ ] 3–5 min Teams video; link pasted into **Video** section below.
 
 ### Commit counter (teacher requires ≥5)
 
@@ -158,6 +151,10 @@ Target: **5** commits.
 - [x] Settled on GitHub (pushed after each commit so the history shows step by step) ✓
 
 Repo: <https://github.com/ihabau/exam-2-todo-app>
+
+## 5. Video link
+
+_Paste the Teams video link here._
 
 ## README answer sections
 
@@ -185,10 +182,6 @@ function addTodo(todos, text) {
 ### 4. Reflection — a problem you hit and how you solved it
 
 One problem I hit was a React console warning that an input was changing from uncontrolled to controlled, which happened because the `text` state started as `undefined`. I fixed it by initializing the state with an empty string (`useState("")`). Another issue was position-based task ids: after deleting or restoring rows the ids repeated and React keys clashed, and it got worse once data was saved to `localStorage`. I read the React docs on controlled components and keys, then added a `nextId()` helper and a `renumber()` step so the ids stay unique and listed `1..n`. Using the browser console and the React docs to find both showed me how useful those warnings really are.
-
-### 5. Video link
-
-_Paste the Teams video link here._
 
 
 ## Reference
