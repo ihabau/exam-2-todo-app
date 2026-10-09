@@ -1,12 +1,78 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./index.css";
 
 const history = [];
+
+const FLAG_SETS = [
+  ["#e5484d", "#f76b15", "#f5a524", "#ffd60a"],
+  ["#a3e635", "#30a46c", "#12a594", "#00a2c7"],
+  ["#3e63dd", "#5b5bd6", "#8e4ec6", "#c026d3"],
+  ["#e93d82", "#78716c", "#0f172a", "#64748b"],
+];
 
 function App() {
   console.log("app started");
   const [todos, setTodos] = useState([]);
   const [text, setText] = useState();
+  const [newColor, setNewColor] = useState("");
+  const [now, setNow] = useState(new Date());
+  const [autoTheme, setAutoTheme] = useState(
+    () => localStorage.getItem("autoTheme") === "true",
+  );
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem("theme");
+    const base = !saved || saved === "light" ? "slate" : saved;
+    if (localStorage.getItem("autoTheme") === "true") {
+      const hour = new Date().getHours();
+      return hour < 6 || hour >= 18
+        ? "dark"
+        : localStorage.getItem("lastTheme") || "slate";
+    }
+    return base;
+  });
+  const [lastTheme, setLastTheme] = useState(
+    () => localStorage.getItem("lastTheme") || "slate",
+  );
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem("lastTheme", lastTheme);
+  }, [lastTheme]);
+
+  useEffect(() => {
+    localStorage.setItem("autoTheme", autoTheme);
+  }, [autoTheme]);
+
+  useEffect(() => {
+    if (!autoTheme) return;
+    const hour = now.getHours();
+    const isNight = hour < 6 || hour >= 18;
+    setTheme(isNight ? "dark" : lastTheme);
+  }, [autoTheme, now, lastTheme]);
+
+  function changeTheme(next) {
+    setAutoTheme(false);
+    setTheme(next);
+    if (next !== "dark") setLastTheme(next);
+  }
+
+  function toggleAuto() {
+    if (autoTheme) {
+      setTheme(lastTheme);
+      setAutoTheme(false);
+    } else {
+      setAutoTheme(true);
+    }
+  }
 
   function addTodo(e) {
     e.preventDefault();
@@ -22,9 +88,11 @@ function App() {
       done: false,
       timeEnd: "",
       timeDeleted: "",
+      color: newColor,
     };
     setTodos([...todos, newTodo]);
     setText("");
+    setNewColor("");
   }
 
   function addList() {
@@ -38,11 +106,13 @@ function App() {
       done: false,
       timeEnd: "",
       timeDeleted: "",
+      color: newColor,
       kind: "list",
       items: [],
     };
     setTodos([...todos, newList]);
     setText("");
+    setNewColor("");
   }
 
   function removeTodo(id) {
@@ -190,7 +260,31 @@ function App() {
   return (
     <>
       <header>
+        <div className="theme-controls">
+          <select
+            className="theme-select"
+            value={theme}
+            onChange={(e) => changeTheme(e.target.value)}
+          >
+            <option value="slate">Slate</option>
+            <option value="dark">Dark</option>
+            <option value="indigo">Indigo</option>
+            <option value="teal">Teal</option>
+            <option value="plum">Plum</option>
+          </select>
+          <button
+            type="button"
+            className={"day-night" + (autoTheme ? " active" : "")}
+            onClick={toggleAuto}
+            aria-label="Auto day or night theme"
+          >
+            {autoTheme ? "Auto" : "Manual"}
+          </button>
+        </div>
         <h1>ToDo App</h1>
+        <p className="clock">
+          {now.toLocaleDateString()} {now.toLocaleTimeString()}
+        </p>
       </header>
 
       <main>
@@ -202,6 +296,22 @@ function App() {
               placeholder="Add a task"
               onChange={(e) => setText(e.target.value)}
             />
+            <div className="flags">
+              {FLAG_SETS.map((set, i) => (
+                <div className="flag-set" key={i}>
+                  {set.map((c) => (
+                    <button
+                      type="button"
+                      key={c}
+                      className={"flag" + (newColor === c ? " active" : "")}
+                      style={{ backgroundColor: c }}
+                      aria-label={"flag " + c}
+                      onClick={() => setNewColor(newColor === c ? "" : c)}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
             <button type="submit">Add</button>
             <button type="button" onClick={addList}>
               Add list
@@ -226,7 +336,11 @@ function App() {
           </div>
           <div className="schedule-grid">
             {todos.map((todo) => (
-              <div className="schedule-item" key={todo.id}>
+              <div
+                className="schedule-item"
+                key={todo.id}
+                style={{ borderLeft: todo.color ? `10px solid ${todo.color}` : "" }}
+              >
                 <label>
                   <input
                     type="checkbox"
@@ -303,7 +417,11 @@ function App() {
           </div>
           <div className="schedule-grid">
             {history.map((todo, index) => (
-              <div className="schedule-item" key={todo.id}>
+              <div
+                className="schedule-item"
+                key={todo.id}
+                style={{ borderLeft: todo.color ? `10px solid ${todo.color}` : "" }}
+              >
                 <p>#{todo.id}</p>
                 <h3>{todo.text}</h3>
                 <p>Created: {todo.timeStart}</p>

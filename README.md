@@ -27,25 +27,32 @@ changes — no page reload.
 
 ## Current status
 
-Working so far:
+Working:
 
 - [x] **Add a task** — form submits on button or Enter.
 - [x] **Block empty input** — `trim()` check.
-- [x] **Mark as done / pending** — toggle via `.map()` in `toggleTodo`.
+- [x] **Mark as done / pending** — toggle via `.map()` in `toggleTodo` (checkbox + strikethrough).
 - [x] **Delete one task** — `.filter()` by id.
 - [x] **No page reload** — all updates go through `setTodos`.
-- [x] **Immutable state** — spread / `.map()` / `.filter()`, no `.push()`.
+- [x] **Immutable list updates** — spread / `.map()` / `.filter()` on `todos`.
 - [x] **English names** — `addTodo`, `removeTodo`, `toggleTodo`, `todos`, `text`.
-- [x] **Timestamp when created** — `timeStart` on each task.
+- [x] **Timestamps** — `timeStart` at creation, `timeEnd` on complete/clear, `timeDeleted` on delete.
+- [x] **History** — deleted todos go to a `history` list with a restore button; empty lists are skipped.
+      (Note: `history` is a plain module array, not React state — it renders because the delete's
+      `setTodos` triggers the re-render. Accepted design choice.)
+- [x] **Number on each line** — the task `id` is displayed next to the text.
+- [x] **Shopping list** — any task can be a list (`kind: "list"`) with nested items + `amount`;
+      checking every item auto-completes the list, and vice versa.
+- [x] **Color flags** — pick one of 16 colors for a new task; shown as a colored left edge (also in history).
+- [x] **Themes** — dropdown (Slate / Dark / Indigo / Teal / Plum) plus an Auto day/night mode, all
+      persisted in `localStorage`.
+- [x] **Live clock** in the header.
+- [x] **Styling / responsive** — done vs pending looks different; layout adapts down to phones.
 
 Not built yet:
 
-- [ ] History of added / completed / deleted events.
-- [ ] Number (or stable id) displayed on every line.
-- [ ] Shopping-list `amount` per line.
 - [ ] Edit a task.
 - [ ] Split into reusable components (`TodoForm`, `TodoItem`) — needed for VG.
-- [ ] Styling / visual done- vs pending-difference via CSS classes.
 
 Known issues to fix before submission:
 
@@ -55,13 +62,15 @@ Known issues to fix before submission:
   already wired to.
 - **Strikethrough via `document.querySelector`** does manual DOM work React should do — derive the
   class from `todo.done` instead.
+- **`toggleTodo` mutates** the found todo object (`todo.timeEnd = ...`) in place before the `.map()` —
+  a new object in the `.map()` is the immutable path.
 
 ## Project checklist (what to build)
 
 - [x] **Add a task** — input field + button, or the Enter key.
 - [x] **Block empty input** — empty / whitespace-only tasks can't be added.
 - [x] **Mark as done** — toggle a single task done ↔ not-done, and back again.
-- [ ] **Visual difference** — done tasks look clearly different (strikethrough, muted colour, whatever).
+- [x] **Visual difference** — done tasks look clearly different (strikethrough + checkbox).
 - [x] **Delete one task** — a delete button that removes only that task.
 - [x] **No page reload** — the list re-renders when state changes.
 - [x] **Immutable state** — never mutate the array in place; `setTodos` always gets a new array.
@@ -115,7 +124,7 @@ array/object — never mutate in place.**
 ## Exam requirements (GitHub & delivery)
 
 - [x] New **public** repo (not a fork of the course repo): <https://github.com/ihabau/exam-2-todo-app>
-- [ ] **At least 5 commits** showing the app built up step by step (the exam spec: "Make **at least 5
+- [x] **At least 5 commits** showing the app built up step by step (the exam spec: "Make **at least 5
       commits** showing how the application was built up step by step during development").
 - [ ] `README.md` filled in — in your own words.
 - [ ] 3–5 min Teams video; link pasted into the README.
@@ -124,16 +133,16 @@ array/object — never mutate in place.**
 
 Target: **5** commits.
 
-`git log --oneline` count: **1 / 5** — commits made and pushed so far:
-[`66b8815`](https://github.com/ihabau/exam-2-todo-app/commit/66b8815) · repo:
-<https://github.com/ihabau/exam-2-todo-app>
+`git log --oneline` count: **5 / 5** — commits made and pushed so far:
 
 - [x] Commit 1 — initial scaffold (Vite + React, git init, pushed) ✓
-- [ ] Commit 2 — add form (add task, block empty)
-- [ ] Commit 3 — toggle done / pending
-- [ ] Commit 4 — delete task
-- [ ] Commit 5 — extras (history, timestamps, edit) + README
-- [ ] Settled on GitHub (push after each commit so the history shows step by step)
+- [x] Commit 2 — README counter + repo status, pushed ✓
+- [x] Commit 3 — correct HTML tags / semantics in JSX (`742d891`) ✓
+- [x] Commit 4 — restructure JSX markup for header, form and history (`ae75ce1`) ✓
+- [x] Commit 5 — lists, color flags, themes + Auto mode, README update (this commit) ✓
+- [x] Settled on GitHub (pushed after each commit so the history shows step by step) ✓
+
+Repo: <https://github.com/ihabau/exam-2-todo-app>
 
 ## README sections you must fill in yourself
 
