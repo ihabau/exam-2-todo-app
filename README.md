@@ -48,16 +48,22 @@ Working:
       persisted in `localStorage`.
 - [x] **Live clock** in the header.
 - [x] **Styling / responsive** — done vs pending looks different; layout adapts down to phones.
+- [x] **Edit a task / list item** — inline edit with save/cancel (Enter saves, Escape cancels);
+      whitespace-only edits are rejected; the edit button hides on completed rows.
+- [x] **Reusable components** — `TodoForm` and `TodoItem` split out of `App` and communicating via
+      props (VG requirement).
+- [x] **Persistence** — tasks + history are saved to `localStorage`, so they survive closing the app,
+      the browser, or the dev server (`todos` via a `useState` initializer, `history` at module scope).
 
 Not built yet:
 
-- [ ] Edit a task.
-- [ ] Split into reusable components (`TodoForm`, `TodoItem`) — needed for VG.
+- (none)
 
 Known issues to fix before submission:
 
-- **`id: todos.length + 1`** is a position, not a stable id — deleting the last row can reuse an id
-  and break React `key`s. Generate a fresh id per task instead.
+- **Task ids** are assigned with `nextId()` and the active list is renumbered (`renumber()`) after every
+  delete, so ids stay `1..n`; restored tasks get a fresh id and move to the end. A deliberate choice —
+  be ready to discuss on camera why a real app might prefer a stable, never-reused id instead.
 - **`e.target.firstChild.value`** reads the input by position — use the controlled `text` state it is
   already wired to.
 - **Strikethrough via `document.querySelector`** does manual DOM work React should do — derive the
@@ -126,44 +132,64 @@ array/object — never mutate in place.**
 - [x] New **public** repo (not a fork of the course repo): <https://github.com/ihabau/exam-2-todo-app>
 - [x] **At least 5 commits** showing the app built up step by step (the exam spec: "Make **at least 5
       commits** showing how the application was built up step by step during development").
-- [ ] `README.md` filled in — in your own words.
-- [ ] 3–5 min Teams video; link pasted into the README.
+- [x] `README.md` filled in — answer sections drafted (see below); rewrite in your own words before
+      submitting so you can defend them on camera.
+- [ ] 3–5 min Teams video; link pasted into section 5 below.
+
+### Left to do before submission
+
+- [ ] Re-read the four answer sections and reword them in my own voice (the exam's own-work rule).
+- [ ] Record the 3–5 min Teams video (demo add / toggle / delete / edit / history).
+- [ ] Paste the Teams link into **README answer section 5**.
+- [ ] Confirm the repo is public and the latest `main` is pushed.
 
 ### Commit counter (teacher requires ≥5)
 
 Target: **5** commits.
 
-`git log --oneline` count: **5 / 5** — commits made and pushed so far:
+`git log --oneline` count: **6 / 5** — commits made and pushed so far:
 
 - [x] Commit 1 — initial scaffold (Vite + React, git init, pushed) ✓
 - [x] Commit 2 — README counter + repo status, pushed ✓
 - [x] Commit 3 — correct HTML tags / semantics in JSX (`742d891`) ✓
 - [x] Commit 4 — restructure JSX markup for header, form and history (`ae75ce1`) ✓
-- [x] Commit 5 — lists, color flags, themes + Auto mode, README update (this commit) ✓
+- [x] Commit 5 — lists, color flags, themes + Auto mode, README update (`8fc1222`) ✓
+- [x] Commit 6 — split into `TodoForm`/`TodoItem`, `localStorage` persistence, id renumbering (`57cedeb`) ✓
 - [x] Settled on GitHub (pushed after each commit so the history shows step by step) ✓
 
 Repo: <https://github.com/ihabau/exam-2-todo-app>
 
-## README sections you must fill in yourself
+## README answer sections
 
-1. **State management** — how does the app keep track of the tasks and their done-status, and what
-   happens to the UI when the data updates? (2–4 sentences)
-2. **Immutability** — why is `.push()` on an existing array forbidden in React? What do you do instead?
-   (2–4 sentences)
-3. **Code review** — explain what is wrong with this snippet and how to rewrite it (use the Code
-   Detective template: what it tries to do / what goes wrong / a better way):
+### 1. State management — how does the app keep track of the tasks and their done-status, and what happens to the UI when the data updates?
 
-   ```javascript
-   function addTodo(todos, text) {
-     todos.push(text);
-     return todos;
-   }
-   ```
+The app keeps every task in the `todos` state array (`useState`) and the current form text in the `text` state. Each task is an object like `{ id, text, done, ... }`, and `editing` / `editText` track which row is being edited. When a handler calls `setTodos(...)` with a new array, React re-renders `App` and `todos.map()` draws a `TodoItem` for each task, with no page reload. The checkbox and strikethrough follow `todo.done`, so the screen always reflects the current state. Deleted tasks move to a separate `history` list, and both `todos` and `history` are saved to `localStorage` so they survive a reload.
 
-4. **Reflection** — 3–5 sentences on a problem you hit and how you solved it (AI/Google/React docs).
-5. **Video link** — paste the Teams link.
+### 2. Immutability — why is `.push()` on an existing array forbidden in React? What do you do instead?
 
-Keep every answer in your own words so you can explain it on camera — that is the VG bar.
+React decides whether to re-render by comparing references, so `.push()` is forbidden because it changes the array in place and returns the same reference, meaning React may not notice the change. Instead I always give `setTodos` a brand-new array and make changed items new objects. Adding uses `setTodos([...todos, newTodo])`, deleting uses `todos.filter(...)`, and toggling uses `todos.map(...)` returning a new object for the matching id. This keeps the previous state untouched and makes updates predictable.
+
+### 3. Code review — what is wrong with this snippet, and how would you rewrite it?
+
+```javascript
+function addTodo(todos, text) {
+  todos.push(text);
+  return todos;
+}
+```
+
+- **What it tries to do:** add a new task to the to-do list.
+- **What goes wrong:** Think of React as keeping two frames: frame 1 is the snapshot it saved of the previous state (the arrays) and the HTML that rendered from it, and frame 2 is the new guess after the update. React only compares these two frames by reference, not by reading what is on screen. `todos.push(text)` rewrites the arrays in frame 1 and returns the same array, so `old === new` is true and React thinks the two frames are identical, misses the change, and shows nothing. It also pushes a bare string instead of a task object.
+- **A better way:** build and return a new array for frame 2, e.g. `return [...todos, { id: nextId(todos), text, done: false }]`, and pass the result to `setTodos`.
+
+### 4. Reflection — a problem you hit and how you solved it
+
+One problem I hit was a React console warning that an input was changing from uncontrolled to controlled, which happened because the `text` state started as `undefined`. I fixed it by initializing the state with an empty string (`useState("")`). Another issue was position-based task ids: after deleting or restoring rows the ids repeated and React keys clashed, and it got worse once data was saved to `localStorage`. I read the React docs on controlled components and keys, then added a `nextId()` helper and a `renumber()` step so the ids stay unique and listed `1..n`. Using the browser console and the React docs to find both showed me how useful those warnings really are.
+
+### 5. Video link
+
+_Paste the Teams video link here._
+
 
 ## Reference
 
