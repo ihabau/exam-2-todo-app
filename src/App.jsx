@@ -1,20 +1,40 @@
 import { useEffect, useState } from "react";
 import "./index.css";
+import TodoForm from "./components/TodoForm";
+import TodoItem from "./components/TodoItem";
 
-const history = [];
+function loadHistory() {
+  try {
+    return JSON.parse(localStorage.getItem("history") || "[]");
+  } catch {
+    return [];
+  }
+}
 
-const FLAG_SETS = [
-  ["#e5484d", "#f76b15", "#f5a524", "#ffd60a"],
-  ["#a3e635", "#30a46c", "#12a594", "#00a2c7"],
-  ["#3e63dd", "#5b5bd6", "#8e4ec6", "#c026d3"],
-  ["#e93d82", "#78716c", "#0f172a", "#64748b"],
-];
+const history = loadHistory();
+
+function renumber(todos) {
+  return todos.map((todo, index) => ({ ...todo, id: index + 1 }));
+}
+
+function nextId(todos) {
+  return todos.reduce((max, todo) => Math.max(max, todo.id), 0) + 1;
+}
 
 function App() {
   console.log("app started");
-  const [todos, setTodos] = useState([]);
-  const [text, setText] = useState();
+  const [todos, setTodos] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("todos") || "[]");
+    } catch {
+      return [];
+    }
+  });
+  const [text, setText] = useState("");
   const [newColor, setNewColor] = useState("");
+  const [editing, setEditing] = useState(null);
+  const [editText, setEditText] = useState("");
+  const [editAmount, setEditAmount] = useState("");
   const [now, setNow] = useState(new Date());
   const [autoTheme, setAutoTheme] = useState(
     () => localStorage.getItem("autoTheme") === "true",
@@ -53,6 +73,11 @@ function App() {
   }, [autoTheme]);
 
   useEffect(() => {
+    localStorage.setItem("todos", JSON.stringify(todos));
+    localStorage.setItem("history", JSON.stringify(history));
+  }, [todos]);
+
+  useEffect(() => {
     if (!autoTheme) return;
     const hour = now.getHours();
     const isNight = hour < 6 || hour >= 18;
@@ -74,6 +99,10 @@ function App() {
     }
   }
 
+  function pickColor(color) {
+    setNewColor(newColor === color ? "" : color);
+  }
+
   function addTodo(e) {
     e.preventDefault();
     const message = e.target.firstChild.value;
@@ -82,7 +111,7 @@ function App() {
     const timeStart = new Date(Date.now()).toLocaleString();
 
     const newTodo = {
-      id: todos.length + 1,
+      id: nextId(todos),
       timeStart: timeStart,
       text: message,
       done: false,
@@ -100,7 +129,7 @@ function App() {
     const name = (text || "").trim();
 
     const newList = {
-      id: todos.length + 1,
+      id: nextId(todos),
       timeStart: timeStart,
       text: name === "" ? "New list" : name,
       done: false,
@@ -119,14 +148,14 @@ function App() {
     const todo = todos.find((todo) => todo.id === id);
 
     if (todo.kind === "list" && todo.items.length === 0) {
-      setTodos(todos.filter((todo) => todo.id !== id));
+      setTodos(renumber(todos.filter((todo) => todo.id !== id)));
       return;
     }
 
     const now = new Date(Date.now()).toLocaleString();
     todo.timeDeleted = now;
     history.push(todo);
-    setTodos(todos.filter((todo) => todo.id !== id));
+    setTodos(renumber(todos.filter((todo) => todo.id !== id)));
   }
 
   function toggleTodo(id) {
@@ -136,10 +165,10 @@ function App() {
     const todo = todos.find((todo) => todo.id == id);
 
     if (!todo.done) {
-      e.style.textDecoration = "line-through";
+      if (e) e.style.textDecoration = "line-through";
       todo.timeEnd = new Date(Date.now()).toLocaleString();
     } else {
-      e.style.textDecoration = "none";
+      if (e) e.style.textDecoration = "none";
       todo.timeEnd = "";
     }
 
@@ -185,6 +214,7 @@ function App() {
   function restoreTodo(index) {
     const [todo] = history.splice(index, 1);
     todo.timeDeleted = "";
+    todo.id = nextId(todos);
     setTodos([...todos, todo]);
   }
 
@@ -257,6 +287,52 @@ function App() {
     );
   }
 
+  function startEditTodo(todo) {
+    setEditing({ todoId: todo.id });
+    setEditText(todo.text);
+  }
+
+  function startEditItem(listId, item) {
+    setEditing({ listId: listId, itemId: item.id });
+    setEditText(item.text);
+    setEditAmount(item.amount || "");
+  }
+
+  function cancelEdit() {
+    setEditing(null);
+    setEditText("");
+    setEditAmount("");
+  }
+
+  function saveEditTodo(id) {
+    const value = editText.trim();
+    if (value === "") return;
+    setTodos(
+      todos.map((todo) => (todo.id === id ? { ...todo, text: value } : todo)),
+    );
+    cancelEdit();
+  }
+
+  function saveEditItem(listId, itemId) {
+    const value = editText.trim();
+    if (value === "") return;
+    setTodos(
+      todos.map((todo) =>
+        todo.id === listId
+          ? {
+              ...todo,
+              items: todo.items.map((item) =>
+                item.id === itemId
+                  ? { ...item, text: value, amount: editAmount }
+                  : item,
+              ),
+            }
+          : todo,
+      ),
+    );
+    cancelEdit();
+  }
+
   return (
     <>
       <header>
@@ -288,44 +364,15 @@ function App() {
       </header>
 
       <main>
-        <div className="form-bar">
-          <form onSubmit={addTodo}>
-            <input
-              value={text}
-              type="text"
-              placeholder="Add a task"
-              onChange={(e) => setText(e.target.value)}
-            />
-            <div className="flags">
-              {FLAG_SETS.map((set, i) => (
-                <div className="flag-set" key={i}>
-                  {set.map((c) => (
-                    <button
-                      type="button"
-                      key={c}
-                      className={"flag" + (newColor === c ? " active" : "")}
-                      style={{ backgroundColor: c }}
-                      aria-label={"flag " + c}
-                      onClick={() => setNewColor(newColor === c ? "" : c)}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-            <button type="submit">Add</button>
-            <button type="button" onClick={addList}>
-              Add list
-            </button>
-          </form>
-
-          <button
-            type="button"
-            className="history-btn"
-            onClick={toggleHistory}
-          >
-            Show history
-          </button>
-        </div>
+        <TodoForm
+          text={text}
+          onTextChange={setText}
+          onAdd={addTodo}
+          onAddList={addList}
+          newColor={newColor}
+          onPickColor={pickColor}
+          onToggleHistory={toggleHistory}
+        />
 
         <section className="event-schema">
           <div className="section-header">
@@ -336,71 +383,26 @@ function App() {
           </div>
           <div className="schedule-grid">
             {todos.map((todo) => (
-              <div
-                className="schedule-item"
+              <TodoItem
                 key={todo.id}
-                style={{ borderLeft: todo.color ? `10px solid ${todo.color}` : "" }}
-              >
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={todo.done}
-                    onChange={() => toggleTodo(todo.id)}
-                  />
-                  #{todo.id}
-                </label>
-                <h3 className={`todo-item-${todo.id}`}>{todo.text}</h3>
-                <p>
-                  Created: {todo.timeStart}
-                  <br />
-                  {todo.done ? "Done: " + todo.timeEnd : "Pending"}
-                </p>
-                <button type="button" onClick={() => removeTodo(todo.id)}>
-                  remove
-                </button>
-                {todo.kind === "list" && (
-                  <div className="shopping-body">
-                    <form onSubmit={(e) => addItem(todo.id, e)}>
-                      <input name="text" type="text" placeholder="Add an item" />
-                      <input
-                        name="amount"
-                        type="number"
-                        min="1"
-                        placeholder="Qty"
-                      />
-                      <button type="submit">Add</button>
-                    </form>
-                    <ul>
-                      {todo.items.map((item) => (
-                        <li key={item.id}>
-                          <label>
-                            <input
-                              type="checkbox"
-                              checked={item.done}
-                              onChange={() => toggleItem(todo.id, item.id)}
-                            />
-                            <span className={item.done ? "item-done" : ""}>
-                              {item.text}
-                            </span>
-                          </label>
-                          <span>Qty: {item.amount || 1}</span>
-                          <button
-                            type="button"
-                            onClick={() => removeItem(todo.id, item.id)}
-                          >
-                            remove
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                    {todo.items.length > 0 && (
-                      <button type="button" onClick={() => clearItems(todo.id)}>
-                        clear items
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
+                todo={todo}
+                editing={editing}
+                editText={editText}
+                editAmount={editAmount}
+                onToggle={toggleTodo}
+                onRemove={removeTodo}
+                onStartEdit={startEditTodo}
+                onCancelEdit={cancelEdit}
+                onSaveEdit={saveEditTodo}
+                onEditTextChange={setEditText}
+                onEditAmountChange={setEditAmount}
+                onAddItem={addItem}
+                onToggleItem={toggleItem}
+                onRemoveItem={removeItem}
+                onClearItems={clearItems}
+                onStartEditItem={startEditItem}
+                onSaveEditItem={saveEditItem}
+              />
             ))}
           </div>
         </section>
@@ -419,7 +421,7 @@ function App() {
             {history.map((todo, index) => (
               <div
                 className="schedule-item"
-                key={todo.id}
+                key={index}
                 style={{ borderLeft: todo.color ? `10px solid ${todo.color}` : "" }}
               >
                 <p>#{todo.id}</p>
@@ -442,7 +444,7 @@ function App() {
                           <span className={item.done ? "item-done" : ""}>
                             {item.text}
                           </span>
-                          <span>Qty: {item.amount || 1}</span>
+                          {item.amount && <span>Qty: {item.amount}</span>}
                         </li>
                       ))}
                     </ul>
