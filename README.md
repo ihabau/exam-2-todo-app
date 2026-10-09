@@ -101,7 +101,7 @@ array/object — never mutate in place.**
 - **Start:** give each task its own timestamp set once when it is created. Hint: put it on the task
   object next to `text`/`done`, e.g. a `created`/`startedAt` field holding the time when the task was
   added.
-- **Completed:** set a timestamp when a task becomes done, and *clear* it when toggled back to
+- **Completed:** set a timestamp when a task becomes done, and _clear_ it when toggled back to
   not-done. Hint: the same `.map()` you use to flip `done` can set or remove the `completedAt` value
   on the matching `id` — a new object every time.
 - **Deleted:** if you keep a "deleted at" time you probably want a **history**, because a deleted task
@@ -121,7 +121,7 @@ array/object — never mutate in place.**
 
 ### Edit a task
 
-- Add an **Edit** button per row. Hint: track *which* row is being edited in state (e.g. an
+- Add an **Edit** button per row. Hint: track _which_ row is being edited in state (e.g. an
   `editingId`); when that id matches the row, replace the text with an input field.
 - On save, update the text with the same immutable `.map()` pattern as toggle — new object for the
   matching id. Validate like the add form: empty / whitespace-only edits get rejected.
@@ -134,14 +134,14 @@ array/object — never mutate in place.**
       commits** showing how the application was built up step by step during development").
 - [x] `README.md` filled in — answer sections drafted (see below); rewrite in your own words before
       submitting so you can defend them on camera.
-- [ ] 3–5 min Teams video; link pasted into section 5 below.
+- [x] 3–5 min Teams video; link pasted into section 5 below.
 
 ### Left to do before submission
 
-- [ ] Re-read the four answer sections and reword them in my own voice (the exam's own-work rule).
-- [ ] Record the 3–5 min Teams video (demo add / toggle / delete / edit / history).
-- [ ] Paste the Teams link into **README answer section 5**.
-- [ ] Confirm the repo is public and the latest `main` is pushed.
+- [x] Re-read the four answer sections and reword them in my own voice (the exam's own-work rule).
+- [x] Record the 3–5 min Teams video (demo add / toggle / delete / edit / history).
+- [x] Paste the Teams link into **README answer section 5**.
+- [x] Confirm the repo is public and the latest `main` is pushed.
 
 ### Commit counter (teacher requires ≥5)
 
@@ -188,8 +188,9 @@ One problem I hit was a React console warning that an input was changing from un
 
 ### 5. Video link
 
-_Paste the Teams video link here._
+<https://teams.microsoft.com/l/message/48:notes/1791579515468?context=%7B%22contextType%22%3A%22chat%22%2C%22oid%22%3A%228%3Aorgid%3A58562a1c-7528-4f1a-99d4-425b0521ca29%22%7D>
 
+_Paste the Teams video link here._
 
 ## Reference
 
