@@ -1,28 +1,27 @@
 import { useState } from "react";
 import "./index.css";
 
-const initialTodos = [];
+const history = [];
 
 function App() {
   console.log("app started");
-  const [todos, setTodos] = useState(initialTodos);
-  const [text, setText] = useState("");
+  const [todos, setTodos] = useState([]);
+  const [text, setText] = useState();
 
   function addTodo(e) {
     e.preventDefault();
     const message = e.target.firstChild.value;
     if (message.trim() === "") return;
 
-    const timeStamp = Date.now();
-    const now = new Date(timeStamp);
-    const time = now.getHours() + ":" + now.getMinutes();
+    const timeStart = new Date(Date.now()).toLocaleString();
 
     const newTodo = {
       id: todos.length + 1,
-      timeStart: time,
+      timeStart: timeStart,
       text: message,
       done: false,
-      timeEnde: "",
+      timeEnd: "",
+      timeDeleted: "",
     };
     console.log(todos.length);
     setTodos([...todos, newTodo]);
@@ -32,6 +31,10 @@ function App() {
   }
 
   function removeTodo(id) {
+    const todo = todos.find((todo) => todo.id === id);
+    const now = new Date(Date.now()).toLocaleString();
+    todo.timeDeleted = now;
+    history.push(todo);
     setTodos(todos.filter((todo) => todo.id !== id));
   }
 
@@ -44,8 +47,7 @@ function App() {
 
     if (!todo.done) {
       e.style.textDecoration = "line-through";
-      const now2 = new Date(Date.now());
-      todo.timeEnd = "finished at " + now2.getHours() + ":" + now2.getMinutes();
+      todo.timeEnd = new Date(Date.now()).toLocaleString();
     } else {
       e.style.textDecoration = "none";
       todo.timeEnd = "";
@@ -58,9 +60,21 @@ function App() {
     );
   }
 
+  function toggleHistory() {
+    const e = document.querySelector(".history");
+    if (e.style.visibility === "hidden") {
+      e.style.visibility = "visible";
+    } else {
+      e.style.visibility = "hidden";
+    }
+  }
+
   return (
     <main>
-      <h1>ToDo App</h1>
+      <header>
+        <h1>ToDo App</h1>
+      </header>
+
       <form onSubmit={addTodo}>
         <input
           value={text}
@@ -69,26 +83,52 @@ function App() {
           onChange={(e) => setText(e.target.value)}
         />
         <button type="submit">Add</button>
+        <button type="button" onClick={toggleHistory}>
+          Show history
+        </button>
       </form>
 
-      <ul>
-        {todos.map((todo) => (
-          // changing format after all basics are done
-          <li
-            onClick={() => toggleTodo(todo.id)}
-            role="checkbox"
-            class={`todo-item-${todo.id}`}
-            key={todo.id}
-          >
-            {"    time created:"}
-            {todo.timeStart} {"    message:"}
-            {todo.text}
-            <button onClick={() => removeTodo(todo.id)}>remove</button>
-            {todo.done ? "" : "Pending"}
-            {todo.timeEnd}
-          </li>
-        ))}
-      </ul>
+      <section className="history" style={{ visibility: "hidden" }}>
+        <h2>History</h2>
+        <ul>
+          {history.map((todo) => (
+            <li key={todo.id}>
+              {"    time created:"}
+              {todo.timeStart} {"    message:"}
+              {todo.text}
+              {todo.done ? "" : "Pending "}
+              {todo.timeEnd}
+              {todo.timeDeleted}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
+        <h2>Active tasks</h2>
+        <ul>
+          {todos.map((todo) => (
+            <li className={`todo-item-${todo.id}`} key={todo.id}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={todo.done}
+                  onChange={() => toggleTodo(todo.id)}
+                />
+                {todo.id}
+                {"    time created:"}
+                {todo.timeStart} {"    message:"}
+                {todo.text}
+                {todo.done ? "" : "Pending"}
+                {todo.timeEnd}
+              </label>
+              <button type="button" onClick={() => removeTodo(todo.id)}>
+                remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
     </main>
   );
 }
