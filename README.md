@@ -19,6 +19,33 @@ npm install
 npm run dev
 ```
 
+## Android app version
+
+The `android-app-version` branch wraps this app for Android with **Capacitor**
+and reworks the UI into a four-tab layout:
+
+- **Tasks** — the original todo app (add, toggle, edit, delete).
+- **Calendar** — a `react-calendar` month grid; tap a day to see its tasks.
+- **Schedule** — a day timeline (time slots) plus an "Unscheduled" group.
+- **History** — deleted tasks, with restore and clear.
+
+The layout is responsive: bottom tabs on phones, a left navigation rail on
+tablets, with safe-area handling for notches and navigation bars.
+
+Native integration (guarded so the browser dev server still works):
+
+- Status bar themed to match the app theme.
+- Hardware back button returns to the Tasks tab before exiting.
+- Local-notification reminders for scheduled tasks (`dueDate` + `dueTime`).
+
+```bash
+npm run build          # build the web app
+npx cap sync android   # copy web assets into the Android project
+npx cap open android   # open the native project in Android Studio
+```
+
+> Reminders only fire on a device/emulator — not in the browser.
+
 ## Description
 
 Build a working ToDo app in React. Tasks live in **state** (`useState`), each task is an object with
@@ -191,6 +218,32 @@ One problem I hit was a React console warning that an input was changing from un
 <https://teams.microsoft.com/l/message/48:notes/1791579515468?context=%7B%22contextType%22%3A%22chat%22%2C%22oid%22%3A%228%3Aorgid%3A58562a1c-7528-4f1a-99d4-425b0521ca29%22%7D>
 
 _Paste the Teams video link here._
+
+## Future updates (shelved)
+
+Not implemented yet — planned for a later iteration.
+
+### Monetization
+
+Ship **two variants** from one codebase: a clean ("pro") build and a monetized
+("free") build. Planned approach:
+
+- **Google AdMob**, not AdSense. AdSense is for websites; an app monetized inside
+  a WebView needs AdMob (the Google Mobile Ads SDK). Use the community plugin
+  `@capacitor-community/admob` (v8 for Capacitor 8).
+- **Non-intrusive placement**: a single adaptive **bottom banner** only — no
+  interstitial, app-open, or forced-rewarded ads. The banner draws on the native
+  layer above the WebView, so the tab bar must be raised by the banner height
+  (via `BannerAdPluginEvents.SizeChanged` → a `--ad-height` CSS variable).
+- **Two flavors**: a Vite flag (`VITE_MONETIZE`) plus Android product flavors
+  (`free` = ads + AdMob `APPLICATION_ID`, `pro` = no ads), producing two
+  installable apps side by side.
+- **Consent**: use the plugin's UMP consent APIs (`requestConsentInfo` /
+  `showConsentForm`) before requesting ads; test with Google's official test
+  unit IDs until real AdMob IDs exist.
+- **Optional extras**: a one-time "Remove ads" in-app purchase, or a donation
+  link (Ko-fi / Buy Me a Coffee / GitHub Sponsors via `@capacitor/browser`) —
+  both zero-ad and non-intrusive.
 
 ## Reference
 

@@ -1,11 +1,42 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Capacitor } from "@capacitor/core";
+import { App as CapacitorApp } from "@capacitor/app";
+import { StatusBar, Style } from "@capacitor/status-bar";
 import "./index.css";
-import TodoForm from "./components/TodoForm";
-import TodoItem from "./components/TodoItem";
+import TabBar from "./components/TabBar";
+import TasksView from "./views/TasksView";
+import AllTasksView from "./views/AllTasksView";
+import CalendarView from "./views/CalendarView";
+import ScheduleView from "./views/ScheduleView";
+import HistoryView from "./views/HistoryView";
+import SettingsView from "./views/SettingsView";
+import { syncReminders } from "./utils/notifications";
+
+const STATUS_BAR_COLORS = {
+  slate: "#334155",
+  dark: "#0b1220",
+  indigo: "#1e3a8a",
+  teal: "#0f766e",
+  plum: "#6d28d9",
+};
+
+function normalizeTodo(todo) {
+  return {
+    dueDate: "",
+    dueTime: "",
+    remind: false,
+    timeEnd: "",
+    timeDeleted: "",
+    color: "",
+    repeat: null,
+    completedDates: [],
+    ...todo,
+  };
+}
 
 function loadHistory() {
   try {
-    return JSON.parse(localStorage.getItem("history") || "[]");
+    return JSON.parse(localStorage.getItem("history") || "[]").map(normalizeTodo);
   } catch {
     return [];
   }
@@ -22,20 +53,45 @@ function nextId(todos) {
 }
 
 function App() {
-  console.log("app started");
   const [todos, setTodos] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("todos") || "[]");
+      return JSON.parse(localStorage.getItem("todos") || "[]").map(normalizeTodo);
     } catch {
       return [];
     }
   });
   const [text, setText] = useState("");
   const [newColor, setNewColor] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [dueTime, setDueTime] = useState("");
+  const [remind, setRemind] = useState(false);
+  const [repeat, setRepeat] = useState(null);
   const [editing, setEditing] = useState(null);
   const [editText, setEditText] = useState("");
-  const [editAmount, setEditAmount] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [editRemind, setEditRemind] = useState(false);
+  const [editRepeat, setEditRepeat] = useState(null);
+  const [editingListId, setEditingListId] = useState(null);
+  const [listItems, setListItems] = useState([]);
+  const [lastClear, setLastClear] = useState(null);
   const [now, setNow] = useState(new Date());
+  const [hideCompletedAll, setHideCompletedAll] = useState(
+    () => localStorage.getItem("hideCompletedAll") === "true",
+  );
+  const [hideCompletedListsAll, setHideCompletedListsAll] = useState(
+    () => localStorage.getItem("hideCompletedListsAll") === "true",
+  );
+  const [hideCompletedHistory, setHideCompletedHistory] = useState(
+    () => localStorage.getItem("hideCompletedHistory") === "true",
+  );
+  const [hideCompletedListsHistory, setHideCompletedListsHistory] = useState(
+    () => localStorage.getItem("hideCompletedListsHistory") === "true",
+  );
+  const [activeTab, setActiveTab] = useState(
+    () => localStorage.getItem("activeTab") || "all",
+  );
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [autoTheme, setAutoTheme] = useState(
     () => localStorage.getItem("autoTheme") === "true",
   );
@@ -53,6 +109,12 @@ function App() {
   const [lastTheme, setLastTheme] = useState(
     () => localStorage.getItem("lastTheme") || "slate",
   );
+  const activeTabRef = useRef(activeTab);
+  const stagedIdRef = useRef(0);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -73,8 +135,28 @@ function App() {
   }, [autoTheme]);
 
   useEffect(() => {
+    localStorage.setItem("activeTab", activeTab);
+  }, [activeTab]);
+  useEffect(() => {
+    localStorage.setItem("hideCompletedAll", hideCompletedAll);
+  }, [hideCompletedAll]);
+  useEffect(() => {
+    localStorage.setItem("hideCompletedListsAll", hideCompletedListsAll);
+  }, [hideCompletedListsAll]);
+  useEffect(() => {
+    localStorage.setItem("hideCompletedHistory", hideCompletedHistory);
+  }, [hideCompletedHistory]);
+  useEffect(() => {
+    localStorage.setItem("hideCompletedListsHistory", hideCompletedListsHistory);
+  }, [hideCompletedListsHistory]);
+
+  useEffect(() => {
     localStorage.setItem("todos", JSON.stringify(todos));
     localStorage.setItem("history", JSON.stringify(history));
+  }, [todos]);
+
+  useEffect(() => {
+    syncReminders(todos);
   }, [todos]);
 
   useEffect(() => {
@@ -83,6 +165,34 @@ function App() {
     const isNight = hour < 6 || hour >= 18;
     setTheme(isNight ? "dark" : lastTheme);
   }, [autoTheme, now, lastTheme]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+    StatusBar.setBackgroundColor({
+      color: STATUS_BAR_COLORS[theme] || STATUS_BAR_COLORS.slate,
+    }).catch(() => {});
+  }, [theme]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let handle;
+    let removed = false;
+    CapacitorApp.addListener("backButton", () => {
+      if (activeTabRef.current !== "all") {
+        setActiveTab("all");
+      } else {
+        CapacitorApp.exitApp();
+      }
+    }).then((h) => {
+      if (removed) h.remove();
+      else handle = h;
+    });
+    return () => {
+      removed = true;
+      if (handle) handle.remove();
+    };
+  }, []);
 
   function changeTheme(next) {
     setAutoTheme(false);
@@ -103,111 +213,215 @@ function App() {
     setNewColor(newColor === color ? "" : color);
   }
 
-  function addTodo(e) {
-    e.preventDefault();
-    const message = e.target.firstChild.value;
-    if (message.trim() === "") return;
-
-    const timeStart = new Date(Date.now()).toLocaleString();
-
-    const newTodo = {
-      id: nextId(todos),
-      timeStart: timeStart,
-      text: message,
-      done: false,
-      timeEnd: "",
-      timeDeleted: "",
-      color: newColor,
-    };
-    setTodos([...todos, newTodo]);
+  function resetForm() {
     setText("");
     setNewColor("");
+    setDueDate("");
+    setDueTime("");
+    setRemind(false);
+    setRepeat(null);
+    setListItems([]);
+    setEditingListId(null);
   }
 
-  function addList() {
-    const timeStart = new Date(Date.now()).toLocaleString();
-    const name = (text || "").trim();
+  function stageItem(itemText, amount) {
+    const value = (itemText || "").trim();
+    if (value === "") return;
+    stagedIdRef.current += 1;
+    setListItems([
+      ...listItems,
+      { id: stagedIdRef.current, text: value, amount: amount || "" },
+    ]);
+  }
 
-    const newList = {
-      id: nextId(todos),
-      timeStart: timeStart,
-      text: name === "" ? "New list" : name,
-      done: false,
-      timeEnd: "",
-      timeDeleted: "",
-      color: newColor,
-      kind: "list",
-      items: [],
-    };
-    setTodos([...todos, newList]);
-    setText("");
-    setNewColor("");
+  function updateStagedItem(id, patch) {
+    setListItems(
+      listItems.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+    );
+  }
+
+  function removeStagedItem(id) {
+    setListItems(listItems.filter((item) => item.id !== id));
+  }
+
+  function startListEdit(id) {
+    const list = todos.find((todo) => todo.id === id);
+    if (!list) return;
+    setEditingListId(id);
+    setText(list.text);
+    setNewColor(list.color || "");
+    setDueDate(list.dueDate || "");
+    setDueTime(list.dueTime || "");
+    setRemind(Boolean(list.remind));
+    setRepeat(list.repeat || null);
+    let counter = 0;
+    setListItems(
+      (list.items || []).map((item) => {
+        counter += 1;
+        return { id: counter, text: item.text, amount: item.amount || "" };
+      }),
+    );
+    stagedIdRef.current = counter;
+    setActiveTab("tasks");
+  }
+
+  function cancelListEdit() {
+    resetForm();
+  }
+
+  function addTodo(e) {
+    e.preventDefault();
+    const message = text.trim();
+
+    if (editingListId != null) {
+      setTodos(
+        todos.map((todo) => {
+          if (todo.id !== editingListId) return todo;
+          const items = listItems.map((item, index) => {
+            const match = (todo.items || []).find(
+              (existing) => existing.text === item.text,
+            );
+            return {
+              id: index + 1,
+              text: item.text,
+              amount: item.amount || "",
+              done: match ? match.done : false,
+            };
+          });
+          return {
+            ...todo,
+            text: message === "" ? todo.text : message,
+            color: newColor,
+            dueDate,
+            dueTime: dueTime || "",
+            remind: remind && Boolean(dueDate),
+            repeat: repeat || null,
+            items,
+          };
+        }),
+      );
+      resetForm();
+      return;
+    }
+
+    if (listItems.length > 0) {
+      const id = nextId(todos);
+      setTodos([
+        ...todos,
+        {
+          id,
+          timeStart: new Date(Date.now()).toLocaleString(),
+          text: message === "" ? "New list" : message,
+          done: false,
+          timeEnd: "",
+          timeDeleted: "",
+          color: newColor,
+          dueDate,
+          dueTime: dueTime || "",
+          remind: remind && Boolean(dueDate),
+          repeat: repeat || null,
+          completedDates: [],
+          kind: "list",
+          items: listItems.map((item, index) => ({
+            id: index + 1,
+            text: item.text,
+            amount: item.amount,
+            done: false,
+          })),
+        },
+      ]);
+      resetForm();
+      return;
+    }
+
+    if (message === "") return;
+    setTodos([
+      ...todos,
+      {
+        id: nextId(todos),
+        timeStart: new Date(Date.now()).toLocaleString(),
+        text: message,
+        done: false,
+        timeEnd: "",
+        timeDeleted: "",
+        color: newColor,
+        dueDate,
+        dueTime: dueTime || "",
+        remind: remind && Boolean(dueDate),
+        repeat: repeat || null,
+        completedDates: [],
+      },
+    ]);
+    resetForm();
   }
 
   function removeTodo(id) {
     const todo = todos.find((todo) => todo.id === id);
+    if (!todo) return;
 
     if (todo.kind === "list" && todo.items.length === 0) {
-      setTodos(renumber(todos.filter((todo) => todo.id !== id)));
+      setTodos(renumber(todos.filter((item) => item.id !== id)));
       return;
     }
 
-    const now = new Date(Date.now()).toLocaleString();
-    todo.timeDeleted = now;
-    history.push(todo);
-    setTodos(renumber(todos.filter((todo) => todo.id !== id)));
+    const deletedAt = new Date(Date.now()).toLocaleString();
+    history.push({ ...todo, timeDeleted: deletedAt });
+    setLastClear(null);
+    setTodos(renumber(todos.filter((item) => item.id !== id)));
   }
 
-  function toggleTodo(id) {
-    const idItem = ".todo-item-" + id;
-    const e = document.querySelector(idItem);
-
-    const todo = todos.find((todo) => todo.id == id);
-
-    if (!todo.done) {
-      if (e) e.style.textDecoration = "line-through";
-      todo.timeEnd = new Date(Date.now()).toLocaleString();
-    } else {
-      if (e) e.style.textDecoration = "none";
-      todo.timeEnd = "";
-    }
-
+  function toggleTodo(id, dateKey) {
     setTodos(
-      todos.map((todo) =>
-        todo.id === id
-          ? {
-              ...todo,
-              done: !todo.done,
-              items: todo.items
-                ? todo.items.map((item) => ({ ...item, done: !todo.done }))
-                : todo.items,
-            }
-          : todo,
-      ),
+      todos.map((todo) => {
+        if (todo.id !== id) return todo;
+
+        if (todo.repeat && todo.repeat.freq) {
+          const key = dateKey || todo.dueDate;
+          if (!key) return todo;
+          const dates = todo.completedDates || [];
+          const completedDates = dates.includes(key)
+            ? dates.filter((item) => item !== key)
+            : [...dates, key];
+          return { ...todo, completedDates };
+        }
+
+        return {
+          ...todo,
+          done: !todo.done,
+          timeEnd: !todo.done ? new Date(Date.now()).toLocaleString() : "",
+          items: todo.items
+            ? todo.items.map((item) => ({ ...item, done: !todo.done }))
+            : todo.items,
+        };
+      }),
     );
   }
 
-  function toggleHistory() {
-    const e = document.querySelector(".history");
-    if (e.style.visibility === "hidden") {
-      e.style.visibility = "visible";
-    } else {
-      e.style.visibility = "hidden";
-    }
-  }
-
   function clearTodos() {
-    const now = new Date(Date.now()).toLocaleString();
+    if (todos.length === 0) return;
+    const deletedAt = new Date(Date.now()).toLocaleString();
+    let pushed = 0;
     todos.forEach((todo) => {
       if (todo.kind === "list" && todo.items.length === 0) return;
-      todo.timeDeleted = now;
-      history.push(todo);
+      history.push({ ...todo, timeDeleted: deletedAt });
+      pushed += 1;
     });
+    setLastClear({ todos, pushed });
     setTodos([]);
+  }
+
+  function undoClear() {
+    if (!lastClear) return;
+    if (lastClear.pushed > 0) {
+      history.splice(Math.max(0, history.length - lastClear.pushed));
+    }
+    setTodos(renumber([...todos, ...lastClear.todos]));
+    setLastClear(null);
   }
 
   function clearHistory() {
     history.length = 0;
+    setLastClear(null);
     setTodos([...todos]);
   }
 
@@ -215,34 +429,8 @@ function App() {
     const [todo] = history.splice(index, 1);
     todo.timeDeleted = "";
     todo.id = nextId(todos);
+    setLastClear(null);
     setTodos([...todos, todo]);
-  }
-
-  function addItem(listId, e) {
-    e.preventDefault();
-    const text = e.target.elements.text.value;
-    const amount = e.target.elements.amount.value;
-    if (text.trim() === "") return;
-
-    setTodos(
-      todos.map((todo) =>
-        todo.id === listId
-          ? {
-              ...todo,
-              items: [
-                ...todo.items,
-                {
-                  id: todo.items.length + 1,
-                  text: text,
-                  amount: amount,
-                  done: false,
-                },
-              ],
-            }
-          : todo,
-      ),
-    );
-    e.target.reset();
   }
 
   function toggleItem(listId, itemId) {
@@ -252,15 +440,12 @@ function App() {
     );
     const allDone = items.length > 0 && items.every((item) => item.done);
 
-    const el = document.querySelector(".todo-item-" + listId);
-    if (el) el.style.textDecoration = allDone ? "line-through" : "none";
-
     setTodos(
       todos.map((todo) =>
         todo.id === listId
           ? {
               ...todo,
-              items: items,
+              items,
               done: allDone,
               timeEnd: allDone ? new Date(Date.now()).toLocaleString() : "",
             }
@@ -269,193 +454,128 @@ function App() {
     );
   }
 
-  function removeItem(listId, itemId) {
-    setTodos(
-      todos.map((todo) =>
-        todo.id === listId
-          ? { ...todo, items: todo.items.filter((item) => item.id !== itemId) }
-          : todo,
-      ),
-    );
-  }
-
-  function clearItems(listId) {
-    setTodos(
-      todos.map((todo) =>
-        todo.id === listId ? { ...todo, items: [] } : todo,
-      ),
-    );
-  }
-
   function startEditTodo(todo) {
     setEditing({ todoId: todo.id });
     setEditText(todo.text);
-  }
-
-  function startEditItem(listId, item) {
-    setEditing({ listId: listId, itemId: item.id });
-    setEditText(item.text);
-    setEditAmount(item.amount || "");
+    setEditDate(todo.seriesStart || todo.dueDate || "");
+    setEditTime(todo.dueTime || "");
+    setEditRemind(Boolean(todo.remind));
+    setEditRepeat(todo.repeat || null);
   }
 
   function cancelEdit() {
     setEditing(null);
     setEditText("");
-    setEditAmount("");
+    setEditDate("");
+    setEditTime("");
+    setEditRemind(false);
+    setEditRepeat(null);
   }
 
   function saveEditTodo(id) {
     const value = editText.trim();
     if (value === "") return;
     setTodos(
-      todos.map((todo) => (todo.id === id ? { ...todo, text: value } : todo)),
+      todos.map((todo) => {
+        if (todo.id !== id) return todo;
+        const dateChanged = editDate !== todo.dueDate;
+        return {
+          ...todo,
+          text: value,
+          dueDate: editDate,
+          dueTime: editTime || "",
+          remind: editRemind && Boolean(editDate),
+          repeat: editRepeat || null,
+          completedDates: dateChanged ? [] : todo.completedDates || [],
+        };
+      }),
     );
     cancelEdit();
   }
 
-  function saveEditItem(listId, itemId) {
-    const value = editText.trim();
-    if (value === "") return;
-    setTodos(
-      todos.map((todo) =>
-        todo.id === listId
-          ? {
-              ...todo,
-              items: todo.items.map((item) =>
-                item.id === itemId
-                  ? { ...item, text: value, amount: editAmount }
-                  : item,
-              ),
-            }
-          : todo,
-      ),
-    );
-    cancelEdit();
-  }
+  const app = {
+    todos,
+    history,
+    text,
+    setText,
+    newColor,
+    pickColor,
+    dueDate,
+    setDueDate,
+    dueTime,
+    setDueTime,
+    remind,
+    setRemind,
+    repeat,
+    setRepeat,
+    listItems,
+    stageItem,
+    updateStagedItem,
+    removeStagedItem,
+    editingListId,
+    isEditingList: editingListId != null,
+    startListEdit,
+    cancelListEdit,
+    editRepeat,
+    setEditRepeat,
+    editing,
+    editText,
+    setEditText,
+    editDate,
+    setEditDate,
+    editTime,
+    setEditTime,
+    editRemind,
+    setEditRemind,
+    selectedDate,
+    setSelectedDate,
+    addTodo,
+    removeTodo,
+    toggleTodo,
+    clearTodos,
+    undoClear,
+    canUndoClear: Boolean(lastClear),
+    clearHistory,
+    restoreTodo,
+    toggleItem,
+    startEditTodo,
+    cancelEdit,
+    saveEditTodo,
+    theme,
+    lastTheme,
+    autoTheme,
+    changeTheme,
+    toggleAuto,
+    hideCompletedAll,
+    setHideCompletedAll,
+    hideCompletedListsAll,
+    setHideCompletedListsAll,
+    hideCompletedHistory,
+    setHideCompletedHistory,
+    hideCompletedListsHistory,
+    setHideCompletedListsHistory,
+  };
 
   return (
-    <>
+    <div className={"app"}>
       <header>
-        <div className="theme-controls">
-          <select
-            className="theme-select"
-            value={theme}
-            onChange={(e) => changeTheme(e.target.value)}
-          >
-            <option value="slate">Slate</option>
-            <option value="dark">Dark</option>
-            <option value="indigo">Indigo</option>
-            <option value="teal">Teal</option>
-            <option value="plum">Plum</option>
-          </select>
-          <button
-            type="button"
-            className={"day-night" + (autoTheme ? " active" : "")}
-            onClick={toggleAuto}
-            aria-label="Auto day or night theme"
-          >
-            {autoTheme ? "Auto" : "Manual"}
-          </button>
-        </div>
         <h1>ToDo App</h1>
         <p className="clock">
           {now.toLocaleDateString()} {now.toLocaleTimeString()}
         </p>
       </header>
 
-      <main>
-        <TodoForm
-          text={text}
-          onTextChange={setText}
-          onAdd={addTodo}
-          onAddList={addList}
-          newColor={newColor}
-          onPickColor={pickColor}
-          onToggleHistory={toggleHistory}
-        />
-
-        <section className="event-schema">
-          <div className="section-header">
-            <h2>Active tasks</h2>
-            <button type="button" onClick={clearTodos}>
-              Clear
-            </button>
-          </div>
-          <div className="schedule-grid">
-            {todos.map((todo) => (
-              <TodoItem
-                key={todo.id}
-                todo={todo}
-                editing={editing}
-                editText={editText}
-                editAmount={editAmount}
-                onToggle={toggleTodo}
-                onRemove={removeTodo}
-                onStartEdit={startEditTodo}
-                onCancelEdit={cancelEdit}
-                onSaveEdit={saveEditTodo}
-                onEditTextChange={setEditText}
-                onEditAmountChange={setEditAmount}
-                onAddItem={addItem}
-                onToggleItem={toggleItem}
-                onRemoveItem={removeItem}
-                onClearItems={clearItems}
-                onStartEditItem={startEditItem}
-                onSaveEditItem={saveEditItem}
-              />
-            ))}
-          </div>
-        </section>
-
-        <section
-          className="history event-schema"
-          style={{ visibility: "hidden" }}
-        >
-          <div className="section-header">
-            <h2>History</h2>
-            <button type="button" onClick={clearHistory}>
-              Clear
-            </button>
-          </div>
-          <div className="schedule-grid">
-            {history.map((todo, index) => (
-              <div
-                className="schedule-item"
-                key={index}
-                style={{ borderLeft: todo.color ? `10px solid ${todo.color}` : "" }}
-              >
-                <p>#{todo.id}</p>
-                <h3>{todo.text}</h3>
-                <p>Created: {todo.timeStart}</p>
-                <p>
-                  {todo.done ? "Done: " + todo.timeEnd : "Pending"}
-                  {todo.timeDeleted && " · Deleted: " + todo.timeDeleted}
-                </p>
-                {!todo.done && (
-                  <button type="button" onClick={() => restoreTodo(index)}>
-                    restore
-                  </button>
-                )}
-                {todo.kind === "list" && (
-                  <div className="shopping-body">
-                    <ul>
-                      {todo.items.map((item) => (
-                        <li key={item.id}>
-                          <span className={item.done ? "item-done" : ""}>
-                            {item.text}
-                          </span>
-                          {item.amount && <span>Qty: {item.amount}</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
+      <main className="app-body">
+        {activeTab === "tasks" && <TasksView app={app} />}
+        {activeTab === "all" && <AllTasksView app={app} />}
+        {activeTab === "calendar" && <CalendarView app={app} />}
+        {activeTab === "schedule" && <ScheduleView app={app} />}
+        {activeTab === "history" && <HistoryView app={app} />}
+        {activeTab === "settings" && <SettingsView app={app} />}
       </main>
-    </>
+
+      <TabBar active={activeTab} onChange={setActiveTab} />
+    </div>
   );
 }
 

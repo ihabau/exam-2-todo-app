@@ -1,0 +1,19 @@
+{
+  "appId": "com.school.todoapp",
+  "appName": "Todo App",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#334155"
+  },
+  "plugins": {
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#334155",
+      "overlaysWebView": false
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#f97316"
+    }
+  }
+}
