@@ -1295,6 +1295,8 @@ button {
 .back-btn{background:transparent;border:1px solid var(--border-color);color:var(--text-color);padding:6px 10px;border-radius:10px;cursor:pointer}
 .settings-subpage .view-title{margin:0}
 .settings-section{background:var(--card-color);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.settings-item:disabled{opacity:0.5;cursor:default}
+.settings-note{margin:0;font-size:0.85rem;color:var(--muted-color,var(--text-color));opacity:0.8}
 
 /* ---------- RTL ---------- */
 

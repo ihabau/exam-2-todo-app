@@ -37,6 +37,9 @@ Native integration (guarded so the browser dev server still works):
 - Status bar themed to match the app theme.
 - Hardware back button returns to the Tasks tab before exiting.
 - Local-notification reminders for scheduled tasks (`dueDate` + `dueTime`).
+- CSV export of tasks and history from **Settings → Backup & Export** (saved/shared
+  natively via `@capacitor/filesystem` + `@capacitor/share`, downloaded in the browser),
+  plus CSV import that picks a `.csv` and appends the tasks with fresh ids.
 
 ```bash
 npm run build          # build the web app
@@ -221,29 +224,63 @@ _Paste the Teams video link here._
 
 ## Future updates (shelved)
 
-Not implemented yet — planned for a later iteration.
+Not implemented yet — planned for a later iteration. Rollout is **web-first**
+(Cloudflare Pages), then the existing Capacitor Android shell.
 
-### Monetization
+### Hosting (web)
+
+- Frontend = Vite build → **Cloudflare Pages** (static, unlimited bandwidth, free).
+  Not GitHub Pages (100 GB/mo soft cap; no server functions).
+
+### Backend / database
+
+- **Cloudflare-native (chosen):** Pages + **Workers** + **D1** (SQLite SQL; free 5 GB
+  total / 500 MB per DB; 5M row-reads + 100k row-writes/day) + **Hyperdrive** as the
+  escape hatch to external Postgres. Workers free = 100k req/day, 10 ms CPU; Workers
+  Paid ($5/mo) removes the caps.
+- D1 is already SQL; keep all DB access in one module and use **Drizzle ORM** so a later
+  move to Postgres/MySQL is a schema + config change. Port data with
+  `npx wrangler d1 export`.
+- Alternatives (not chosen): Supabase (Postgres + Auth + RLS + Realtime; free 500 MB,
+  pauses after 7 days idle, Pro $25/mo → 8 GB) or Firebase/Firestore (1 GiB free, NoSQL,
+  daily 50k reads / 20k writes caps).
+
+### Auth
+
+- **Firebase Auth** (free): "Continue with Google" **or** **username + password** (the
+  username maps to `username@users.<domain>` internally, so no email is required).
+  Workers verify the Firebase ID token; the token `sub` is the user id.
+
+### Monetization + credits
 
 Ship **two variants** from one codebase: a clean ("pro") build and a monetized
 ("free") build. Planned approach:
 
-- **Google AdMob**, not AdSense. AdSense is for websites; an app monetized inside
-  a WebView needs AdMob (the Google Mobile Ads SDK). Use the community plugin
-  `@capacitor-community/admob` (v8 for Capacitor 8).
-- **Non-intrusive placement**: a single adaptive **bottom banner** only — no
-  interstitial, app-open, or forced-rewarded ads. The banner draws on the native
-  layer above the WebView, so the tab bar must be raised by the banner height
-  (via `BannerAdPluginEvents.SizeChanged` → a `--ad-height` CSS variable).
+- **Ads** — **AdSense** on the web (websites only); **Google AdMob** in the Android app
+  via `@capacitor-community/admob` (v8 for Capacitor 8). WebView ads must use AdMob, not
+  AdSense.
+- **Non-intrusive placement**: a single adaptive **bottom banner** plus an
+  **optional rewarded video** — no interstitial, app-open, or forced-rewarded ads.
+  The banner draws above the WebView, so the tab bar is raised by the banner height
+  (`BannerAdPluginEvents.SizeChanged` → a `--ad-height` CSS variable).
+- **Credits economy**: an in-app virtual currency (candidates — Coins / Crystals /
+  Gems / Sparks / Stones / Stars) earned by watching **optional rewarded video** ads
+  (and/or a daily bonus) and **spent on server sync** (uploading / downloading todo
+  lists & schedules) plus optional cosmetics like themes.
+- **Sharing (family/friends)**: a `shares(owner_id, guest_id)` link table; queries
+  return rows owned by me OR shared with me.
 - **Two flavors**: a Vite flag (`VITE_MONETIZE`) plus Android product flavors
-  (`free` = ads + AdMob `APPLICATION_ID`, `pro` = no ads), producing two
-  installable apps side by side.
+  (`free` = ads + AdMob `APPLICATION_ID`, `pro` = no ads), producing two installable
+  apps side by side.
 - **Consent**: use the plugin's UMP consent APIs (`requestConsentInfo` /
-  `showConsentForm`) before requesting ads; test with Google's official test
-  unit IDs until real AdMob IDs exist.
-- **Optional extras**: a one-time "Remove ads" in-app purchase, or a donation
-  link (Ko-fi / Buy Me a Coffee / GitHub Sponsors via `@capacitor/browser`) —
-  both zero-ad and non-intrusive.
+  `showConsentForm`) before requesting ads; test with Google's official test unit IDs
+  until real AdMob IDs exist.
+- **Security**: credit balances must be **server-authoritative**, with rewarded credits
+  granted only through **AdMob server-side verification (SSV)** — never from the client.
+  Users may not UPDATE their own balance row.
+- **Optional extras**: a one-time "Remove ads" in-app purchase, or a donation link
+  (Ko-fi / Buy Me a Coffee / GitHub Sponsors via `@capacitor/browser`).
+- Text-only tasks are confirmed — no file/image attachments, so no R2/Storage needed.
 
 ## Reference
 

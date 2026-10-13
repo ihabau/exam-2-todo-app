@@ -442,6 +442,16 @@ function App() {
     setTodos([...todos, todo]);
   }
 
+  function importTodos(rows) {
+    if (rows.length === 0) return 0;
+    const base = nextId(todos);
+    setTodos([
+      ...todos,
+      ...rows.map((row, index) => ({ ...normalizeTodo(row), id: base + index })),
+    ]);
+    return rows.length;
+  }
+
   function toggleItem(listId, itemId) {
     const list = todos.find((todo) => todo.id === listId);
     const items = list.items.map((item) =>
@@ -546,6 +556,7 @@ function App() {
     canUndoClear: Boolean(lastClear),
     clearHistory,
     restoreTodo,
+    importTodos,
     toggleItem,
     startEditTodo,
     cancelEdit,

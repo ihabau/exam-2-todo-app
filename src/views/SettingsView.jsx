@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LANGUAGES } from "../i18n";
+import { exportCsv, parseTasksCsv, tasksFilename, historyFilename } from "../utils/export";
 
 const THEMES = [
   { value: "slate", key: "settings.themeSlate" },
@@ -13,9 +14,39 @@ const THEMES = [
 function SettingsView({ app }) {
   const { t, i18n } = useTranslation();
   const [subpage, setSubpage] = useState(null);
+  const [notice, setNotice] = useState("");
+  const fileInputRef = useRef(null);
   const lang = (i18n.resolvedLanguage || i18n.language || "en").split("-")[0];
   const currentLanguage = LANGUAGES.find((item) => item.code === lang);
   const backArrow = lang === "ar" ? "→" : "←";
+
+  async function runExport(items, filename) {
+    setNotice("");
+    try {
+      await exportCsv(items, filename);
+      setNotice(t("settings.exportDone"));
+    } catch {
+      setNotice(t("settings.exportFailed"));
+    }
+  }
+
+  async function handleImportFile(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setNotice("");
+    try {
+      const rows = parseTasksCsv(await file.text());
+      if (rows.length === 0) {
+        setNotice(t("settings.importEmpty"));
+        return;
+      }
+      app.importTodos(rows);
+      setNotice(t("settings.importDone", { count: rows.length }));
+    } catch {
+      setNotice(t("settings.importFailed"));
+    }
+  }
 
   if (subpage === "appearance") {
     return (
@@ -138,6 +169,55 @@ function SettingsView({ app }) {
     );
   }
 
+  if (subpage === "export") {
+    return (
+      <div className="settings-view settings-subpage">
+        <div className="settings-header">
+          <button type="button" className="back-btn" onClick={() => setSubpage(null)}>
+            {backArrow} {t("common.back")}
+          </button>
+          <h2 className="view-title">{t("settings.export")}</h2>
+        </div>
+        <section className="settings-section">
+          <button
+            type="button"
+            className="settings-item"
+            disabled={app.todos.length === 0}
+            onClick={() => runExport(app.todos, tasksFilename())}
+          >
+            <span className="settings-item-icon">📄</span>
+            <span className="settings-item-label">{t("settings.exportTasks")}</span>
+          </button>
+          <button
+            type="button"
+            className="settings-item"
+            disabled={app.history.length === 0}
+            onClick={() => runExport(app.history, historyFilename())}
+          >
+            <span className="settings-item-icon">🗂️</span>
+            <span className="settings-item-label">{t("settings.exportHistory")}</span>
+          </button>
+          <button
+            type="button"
+            className="settings-item"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <span className="settings-item-icon">📥</span>
+            <span className="settings-item-label">{t("settings.importTasks")}</span>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            hidden
+            onChange={handleImportFile}
+          />
+          {notice && <p className="settings-note">{notice}</p>}
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="settings-view">
       <h2 className="view-title">{t("settings.title")}</h2>
@@ -163,6 +243,13 @@ function SettingsView({ app }) {
             <span className="settings-item-arrow">
               {currentLanguage ? t(currentLanguage.key) : ""}
             </span>
+          </button>
+        </li>
+        <li>
+          <button type="button" className="settings-item" onClick={() => setSubpage("export")}>
+            <span className="settings-item-icon">📤</span>
+            <span className="settings-item-label">{t("settings.export")}</span>
+            <span className="settings-item-arrow">›</span>
           </button>
         </li>
       </ul>
