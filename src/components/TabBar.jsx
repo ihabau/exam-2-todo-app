@@ -1,7 +1,9 @@
+import { useTranslation } from "react-i18next";
+
 const TABS = [
   {
     id: "all",
-    label: "All",
+    labelKey: "nav.all",
     icon: (
       <>
         <rect x="3" y="3" width="7" height="7" rx="1.5" />
@@ -13,14 +15,14 @@ const TABS = [
   },
   {
     id: "tasks",
-    label: "Tasks",
+    labelKey: "nav.tasks",
     icon: (
       <path d="M9 6h11M9 12h11M9 18h11M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17" />
     ),
   },
   {
     id: "calendar",
-    label: "Calendar",
+    labelKey: "nav.calendar",
     icon: (
       <>
         <rect x="3" y="4" width="18" height="17" rx="2" />
@@ -30,7 +32,7 @@ const TABS = [
   },
   {
     id: "schedule",
-    label: "Schedule",
+    labelKey: "nav.schedule",
     icon: (
       <>
         <circle cx="12" cy="12" r="9" />
@@ -40,7 +42,7 @@ const TABS = [
   },
   {
     id: "history",
-    label: "History",
+    labelKey: "nav.history",
     icon: (
       <>
         <path d="M3 12a9 9 0 1 0 2.6-6.4L3 8" />
@@ -51,7 +53,7 @@ const TABS = [
   },
   {
     id: "settings",
-    label: "Settings",
+    labelKey: "nav.settings",
     icon: (
       <>
         <circle cx="12" cy="12" r="3" />
@@ -62,8 +64,9 @@ const TABS = [
 ];
 
 function TabBar({ active, onChange }) {
+  const { t } = useTranslation();
   return (
-    <nav className="tab-bar" aria-label="Main navigation">
+    <nav className="tab-bar" aria-label={t("nav.navLabel")}>
       {TABS.map((tab) => (
         <button
           key={tab.id}
@@ -84,7 +87,7 @@ function TabBar({ active, onChange }) {
           >
             {tab.icon}
           </svg>
-          <span>{tab.label}</span>
+          <span>{t(tab.labelKey)}</span>
         </button>
       ))}
     </nav>

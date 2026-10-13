@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import TodoItem from "../components/TodoItem";
 import {
   toDateKey,
@@ -36,6 +37,8 @@ function TaskCard({ todo, app }) {
 }
 
 function ScheduleView({ app }) {
+  const { t, i18n } = useTranslation();
+  const lang = (i18n.resolvedLanguage || i18n.language || "en").split("-")[0];
   const dayKey = toDateKey(app.selectedDate);
   const dayTasks = tasksForDay(app.todos, dayKey);
   const allDay = dayTasks.filter((todo) => !todo.dueTime);
@@ -52,22 +55,22 @@ function ScheduleView({ app }) {
           <button
             type="button"
             onClick={() => app.setSelectedDate(addDays(app.selectedDate, -1))}
-            aria-label="Previous day"
+            aria-label={t("schedule.prevDay")}
           >
             ‹
           </button>
           <h2>
-            {app.selectedDate.toLocaleDateString(undefined, {
+            {app.selectedDate.toLocaleDateString(lang === "ar" ? "ar" : undefined, {
               weekday: "short",
               month: "short",
               day: "numeric",
             })}
-            {isToday() && <span className="today-badge">Today</span>}
+            {isToday() && <span className="today-badge">{t("schedule.today")}</span>}
           </h2>
           <button
             type="button"
             onClick={() => app.setSelectedDate(addDays(app.selectedDate, 1))}
-            aria-label="Next day"
+            aria-label={t("schedule.nextDay")}
           >
             ›
           </button>
@@ -75,7 +78,7 @@ function ScheduleView({ app }) {
 
         {allDay.length > 0 && (
           <div className="all-day">
-            <span className="slot-label">All day</span>
+            <span className="slot-label">{t("schedule.allDay")}</span>
             <div className="schedule-grid">
               {allDay.map((todo) => (
                 <TaskCard key={todo.id} todo={todo} app={app} />
@@ -105,11 +108,11 @@ function ScheduleView({ app }) {
 
       <section className="event-schema">
         <div className="section-header">
-          <h2>Unscheduled</h2>
+          <h2>{t("schedule.unscheduled")}</h2>
         </div>
         <div className="schedule-grid">
           {noDate.length === 0 && (
-            <p className="empty">Everything has a date.</p>
+            <p className="empty">{t("schedule.empty")}</p>
           )}
           {noDate.map((todo) => (
             <TaskCard key={todo.id} todo={todo} app={app} />

@@ -1,18 +1,21 @@
+import { useTranslation } from "react-i18next";
+
 function HistoryView({ app }) {
+  const { t } = useTranslation();
   return (
     <div className="view history-view">
       <section className="event-schema">
         <div className="section-header">
-          <h2>History</h2>
+          <h2>{t("history.title")}</h2>
           {app.history.length > 0 && (
             <button type="button" onClick={app.clearHistory}>
-              Clear
+              {t("common.clear")}
             </button>
           )}
         </div>
         <div className="schedule-grid">
           {app.history.length === 0 && (
-            <p className="empty">Nothing deleted yet.</p>
+            <p className="empty">{t("history.empty")}</p>
           )}
           {app.history
             .filter((todo) => {
@@ -28,7 +31,7 @@ function HistoryView({ app }) {
               className="schedule-item"
               key={index}
               style={{
-                borderLeft: todo.color ? `10px solid ${todo.color}` : "",
+                borderInlineStart: todo.color ? `10px solid ${todo.color}` : "",
               }}
             >
               <label className="check">
@@ -36,15 +39,15 @@ function HistoryView({ app }) {
               </label>
               <h3>{todo.text}</h3>
               <p className="timestamps">
-                Created: {todo.timeStart}
+                {t("common.created")}: {todo.timeStart}
                 <br />
-                {todo.done ? "Done: " + todo.timeEnd : "Pending"}
-                {todo.timeDeleted && " · Deleted: " + todo.timeDeleted}
+                {todo.done ? t("common.done") + ": " + todo.timeEnd : t("common.pending")}
+                {todo.timeDeleted && " · " + t("common.deleted") + ": " + todo.timeDeleted}
               </p>
               <div className="row-actions">
                 {!todo.done && (
                   <button type="button" onClick={() => app.restoreTodo(index)}>
-                    restore
+                    {t("common.restore")}
                   </button>
                 )}
               </div>
@@ -56,7 +59,11 @@ function HistoryView({ app }) {
                         <span className={item.done ? "item-done" : ""}>
                           {item.text}
                         </span>
-                        {item.amount && <span>Qty: {item.amount}</span>}
+                        {item.amount && (
+                          <span>
+                            {t("common.qty")}: {item.amount}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>

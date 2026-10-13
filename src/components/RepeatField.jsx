@@ -1,14 +1,14 @@
 import { useId } from "react";
-import { dateFromKey, toDateKey, WEEKDAY_FULL } from "../utils/date";
+import { useTranslation } from "react-i18next";
+import { dateFromKey, toDateKey, WEEKDAY_KEYS } from "../utils/date";
 
 const WEEKDAY_ORDER = [0, 1, 2, 3, 4, 5, 6];
-const WEEKDAY_SHORT = ["S", "M", "T", "W", "T", "F", "S"];
 const NTH_OPTIONS = [
-  { value: 1, label: "first" },
-  { value: 2, label: "second" },
-  { value: 3, label: "third" },
-  { value: 4, label: "fourth" },
-  { value: -1, label: "last" },
+  { value: 1, labelKey: "nth.first" },
+  { value: 2, labelKey: "nth.second" },
+  { value: 3, labelKey: "nth.third" },
+  { value: 4, labelKey: "nth.fourth" },
+  { value: -1, labelKey: "nth.last" },
 ];
 
 function clamp(value, min, max) {
@@ -16,6 +16,7 @@ function clamp(value, min, max) {
 }
 
 function RepeatField({ value, dueDate, onChange }) {
+  const { t } = useTranslation();
   const repeat = value && value.freq ? value : null;
   const base = dateFromKey(dueDate) || new Date();
   const radioName = useId();
@@ -102,25 +103,25 @@ function RepeatField({ value, dueDate, onChange }) {
             <path d="M7 22l-4-4 4-4" />
             <path d="M21 13v1a4 4 0 0 1-4 4H3" />
           </svg>
-          Repeat
+          {t("repeat.label")}
         </span>
         <select
           className="repeat-select"
           value={modeOf()}
           onChange={(e) => changeMode(e.target.value)}
         >
-          <option value="none">Does not repeat</option>
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
-          <option value="custom">Custom…</option>
+          <option value="none">{t("repeat.none")}</option>
+          <option value="daily">{t("repeat.daily")}</option>
+          <option value="weekly">{t("repeat.weekly")}</option>
+          <option value="monthly">{t("repeat.monthly")}</option>
+          <option value="custom">{t("repeat.custom")}</option>
         </select>
       </label>
 
       {repeat && (
         <div className="repeat-panel">
           <div className="repeat-row">
-            <span>Every</span>
+            <span>{t("repeat.every")}</span>
             <input
               type="number"
               min="1"
@@ -137,9 +138,9 @@ function RepeatField({ value, dueDate, onChange }) {
               value={repeat.freq}
               onChange={(e) => patch({ freq: e.target.value, custom: true })}
             >
-              <option value="daily">day(s)</option>
-              <option value="weekly">week(s)</option>
-              <option value="monthly">month(s)</option>
+              <option value="daily">{t("repeat.day")}</option>
+              <option value="weekly">{t("repeat.week")}</option>
+              <option value="monthly">{t("repeat.month")}</option>
             </select>
           </div>
 
@@ -149,7 +150,7 @@ function RepeatField({ value, dueDate, onChange }) {
                 <button
                   type="button"
                   key={day}
-                  title={WEEKDAY_FULL[day]}
+                  title={t(`weekday.${WEEKDAY_KEYS[day]}`)}
                   className={
                     "weekday-chip" +
                     ((repeat.weekdays || []).includes(day) ? " active" : "")
@@ -157,7 +158,7 @@ function RepeatField({ value, dueDate, onChange }) {
                   aria-pressed={(repeat.weekdays || []).includes(day)}
                   onClick={() => toggleWeekday(day)}
                 >
-                  {WEEKDAY_SHORT[day]}
+                  {t(`weekdayShort.${WEEKDAY_KEYS[day]}`)}
                 </button>
               ))}
             </div>
@@ -172,7 +173,7 @@ function RepeatField({ value, dueDate, onChange }) {
                   checked={repeat.monthMode !== "weekday"}
                   onChange={() => patch({ monthMode: "date", custom: true })}
                 />
-                <span>On day</span>
+                <span>{t("repeat.onDay")}</span>
                 <input
                   type="number"
                   min="1"
@@ -194,7 +195,7 @@ function RepeatField({ value, dueDate, onChange }) {
                   checked={repeat.monthMode === "weekday"}
                   onChange={() => patch({ monthMode: "weekday", custom: true })}
                 />
-                <span>On the</span>
+                <span>{t("repeat.onThe")}</span>
                 <select
                   value={repeat.nth || 1}
                   onChange={(e) =>
@@ -207,7 +208,7 @@ function RepeatField({ value, dueDate, onChange }) {
                 >
                   {NTH_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
-                      {option.label}
+                      {t(option.labelKey)}
                     </option>
                   ))}
                 </select>
@@ -223,7 +224,7 @@ function RepeatField({ value, dueDate, onChange }) {
                 >
                   {WEEKDAY_ORDER.map((day) => (
                     <option key={day} value={day}>
-                      {WEEKDAY_FULL[day]}
+                      {t(`weekday.${WEEKDAY_KEYS[day]}`)}
                     </option>
                   ))}
                 </select>
@@ -243,7 +244,7 @@ function RepeatField({ value, dueDate, onChange }) {
                 })
               }
             />
-            <span>Ends on</span>
+            <span>{t("repeat.endsOn")}</span>
             {repeat.until && (
               <input
                 type="date"

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { formatWhen, formatRepeat } from "../utils/date";
 import TimeField from "./TimeField";
 import RepeatField from "./RepeatField";
@@ -25,6 +26,7 @@ function TodoItem({
   onToggleItem,
   onEditList,
 }) {
+  const { t } = useTranslation();
   const isList = todo.kind === "list";
   const isEditing = !isList && editing && editing.todoId === todo.id;
 
@@ -35,7 +37,7 @@ function TodoItem({
         (todo.done ? " is-done" : "") +
         (isEditing ? " is-editing" : "")
       }
-      style={{ borderLeft: todo.color ? `10px solid ${todo.color}` : "" }}
+      style={{ borderInlineStart: todo.color ? `10px solid ${todo.color}` : "" }}
     >
       <label className="check">
         <input
@@ -70,7 +72,7 @@ function TodoItem({
           <TimeField
             value={editTime}
             onChange={onEditTimeChange}
-            ariaLabel="Pick due time"
+            ariaLabel={t("form.pickTime")}
           />
           <label className="remind-toggle">
             <input
@@ -78,7 +80,7 @@ function TodoItem({
               checked={editRemind}
               onChange={(e) => onEditRemindChange(e.target.checked)}
             />
-            <span>Remind</span>
+            <span>{t("common.remind")}</span>
           </label>
           <RepeatField
             value={editRepeat}
@@ -113,18 +115,18 @@ function TodoItem({
         </p>
       )}
 
-      <p className="ts-created">Created: {todo.timeStart}</p>
+      <p className="ts-created">{t("common.created")}: {todo.timeStart}</p>
       <p className="ts-status">
-        {todo.done ? "Done: " + todo.timeEnd : "Pending"}
+        {todo.done ? t("common.done") + ": " + todo.timeEnd : t("common.pending")}
       </p>
       <div className="row-actions">
         {isEditing ? (
           <>
             <button type="button" onClick={() => onSaveEdit(todo.id)}>
-              save
+              {t("common.save")}
             </button>
             <button type="button" onClick={onCancelEdit}>
-              cancel
+              {t("common.cancel")}
             </button>
           </>
         ) : (
@@ -132,15 +134,15 @@ function TodoItem({
             {!todo.done &&
               (isList ? (
                 <button type="button" onClick={() => onEditList(todo.id)}>
-                  edit
+                  {t("common.edit")}
                 </button>
               ) : (
                 <button type="button" onClick={() => onStartEdit(todo)}>
-                  edit
+                  {t("common.edit")}
                 </button>
               ))}
             <button type="button" onClick={() => onRemove(todo.id)}>
-              remove
+              {t("common.remove")}
             </button>
           </>
         )}
@@ -149,7 +151,7 @@ function TodoItem({
       {isList && (
         <ul className="list-items">
           {todo.items.length === 0 && (
-            <li className="empty">No items yet. Use edit to add some.</li>
+            <li className="empty">{t("list.emptyItems")}</li>
           )}
           {todo.items.map((item) => (
             <li key={item.id}>
@@ -161,7 +163,11 @@ function TodoItem({
                 />
               </label>
               <span className={item.done ? "item-done" : ""}>{item.text}</span>
-              {item.amount && <span className="item-qty">Qty: {item.amount}</span>}
+              {item.amount && (
+                <span className="item-qty">
+                  {t("common.qty")}: {item.amount}
+                </span>
+              )}
             </li>
           ))}
         </ul>

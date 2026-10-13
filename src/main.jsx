@@ -2,6 +2,7 @@ import React from "react"
 import ReactDOM from "react-dom/client"
 import "react-calendar/dist/Calendar.css"
 import "./index.css"
+import "./i18n.js"
 import App from "./App.jsx"
 
 ReactDOM.createRoot(document.getElementById("root")).render(

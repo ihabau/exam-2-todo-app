@@ -1286,7 +1286,8 @@ button {
 
 /* ---------- Settings ---------- */
 .settings-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.settings-item{width:100%;display:flex;align-items:center;gap:12px;background:var(--card-color);border:none;border-left:4px solid transparent;border-radius:12px;padding:12px 14px;color:var(--text-color);text-align:left;cursor:pointer}
+.settings-item{width:100%;display:flex;align-items:center;gap:12px;background:var(--card-color);border:none;border-inline-start:4px solid transparent;border-radius:12px;padding:12px 14px;color:var(--text-color);text-align:start;cursor:pointer}
+.settings-item.active{border-inline-start-color:var(--primary-color)}
 .settings-item-icon{font-size:1.2rem}
 .settings-item-label{flex:1;font-size:0.98rem;font-weight:600}
 .settings-item-arrow{font-size:1.4rem;opacity:0.5}
@@ -1294,3 +1295,34 @@ button {
 .back-btn{background:transparent;border:1px solid var(--border-color);color:var(--text-color);padding:6px 10px;border-radius:10px;cursor:pointer}
 .settings-subpage .view-title{margin:0}
 .settings-section{background:var(--card-color);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+
+/* ---------- RTL ---------- */
+
+[dir="rtl"] .settings-item-arrow{
+  transform: scaleX(-1);
+}
+
+[dir="rtl"] .day-nav button{
+  transform: scaleX(-1);
+}
+
+[dir="rtl"] header{
+  text-align: right;
+}
+
+[dir="rtl"] .theme-controls{
+  right: auto;
+  left: 12px;
+}
+
+@media (min-width: 768px) {
+  [dir="rtl"] .theme-controls{
+    left: 20px;
+    right: auto;
+  }
+
+  [dir="rtl"] .tab-bar{
+    border-right: none;
+    border-left: 1px solid rgba(0, 0, 0, 0.15);
+  }
+}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const CX = 110;
 const CY = 110;
@@ -20,6 +21,7 @@ function polar(index, radius) {
 }
 
 function ClockDial({ value, onChange, onClose }) {
+  const { t } = useTranslation();
   const [mode, setMode] = useState("hour");
 
   const [hh, mm] = value ? value.split(":").map(Number) : [9, 0];
@@ -197,10 +199,10 @@ function ClockDial({ value, onChange, onClose }) {
               onClose();
             }}
           >
-            Clear
+            {t("clock.clear")}
           </button>
           <button type="button" onClick={onClose}>
-            OK
+            {t("clock.ok")}
           </button>
         </div>
       </div>

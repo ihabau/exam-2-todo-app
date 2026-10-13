@@ -1,7 +1,9 @@
+import { useTranslation } from "react-i18next";
 import TodoItem from "../components/TodoItem";
 import { occurrenceFor, isRecurring } from "../utils/date";
 
 function AllTasksView({ app }) {
+  const { t } = useTranslation();
   const active = app.todos.filter((todo) => !todo.done).length;
   const done = app.todos.length - active;
 
@@ -9,16 +11,16 @@ function AllTasksView({ app }) {
     <div className="view tasks-view">
       <section className="event-schema">
         <div className="section-header">
-          <h2>All tasks</h2>
+          <h2>{t("allTasks.title")}</h2>
           <div className="section-actions">
             {app.canUndoClear && (
               <button type="button" onClick={app.undoClear}>
-                Undo clear
+                {t("allTasks.undoClear")}
               </button>
             )}
             {app.todos.length > 0 && (
               <button type="button" onClick={app.clearTodos}>
-                Clear
+                {t("common.clear")}
               </button>
             )}
           </div>
@@ -26,13 +28,13 @@ function AllTasksView({ app }) {
 
         {app.todos.length > 0 && (
           <p className="task-count">
-            {active} active · {done} done
+            {t("allTasks.count", { active, done })}
           </p>
         )}
 
         <div className="schedule-grid">
           {app.todos.length === 0 && (
-            <p className="empty">No tasks yet. Add one on the Tasks tab.</p>
+            <p className="empty">{t("allTasks.empty")}</p>
           )}
           {app.todos
             .filter((todo) => {

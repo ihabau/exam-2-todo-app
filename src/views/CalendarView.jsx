@@ -1,8 +1,11 @@
 import Calendar from "react-calendar";
+import { useTranslation } from "react-i18next";
 import TodoItem from "../components/TodoItem";
 import { toDateKey, tasksForDay } from "../utils/date";
 
 function CalendarView({ app }) {
+  const { t, i18n } = useTranslation();
+  const lang = (i18n.resolvedLanguage || i18n.language || "en").split("-")[0];
   const selectedKey = toDateKey(app.selectedDate);
   const dayTasks = tasksForDay(app.todos, selectedKey);
 
@@ -10,7 +13,12 @@ function CalendarView({ app }) {
     if (view !== "month") return null;
     const count = tasksForDay(app.todos, toDateKey(date)).length;
     if (!count) return null;
-    return <span className="tile-dot" aria-label={`${count} tasks`} />;
+    return (
+      <span
+        className="tile-dot"
+        aria-label={t("calendar.tasksCount", { count })}
+      />
+    );
   }
 
   return (
@@ -20,14 +28,14 @@ function CalendarView({ app }) {
           value={app.selectedDate}
           onChange={app.setSelectedDate}
           tileContent={renderTile}
-          locale="en-GB"
+          locale={lang === "ar" ? "ar" : "en-GB"}
         />
       </section>
 
       <section className="event-schema">
         <div className="section-header">
           <h2>
-            {app.selectedDate.toLocaleDateString(undefined, {
+            {app.selectedDate.toLocaleDateString(lang === "ar" ? "ar" : undefined, {
               weekday: "long",
               month: "short",
               day: "numeric",
@@ -36,7 +44,7 @@ function CalendarView({ app }) {
         </div>
         <div className="schedule-grid">
           {dayTasks.length === 0 && (
-            <p className="empty">No tasks scheduled for this day.</p>
+            <p className="empty">{t("calendar.empty")}</p>
           )}
           {dayTasks.map((todo) => (
             <TodoItem

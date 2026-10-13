@@ -1,3 +1,5 @@
+import i18n from "../i18n";
+
 export function pad(n) {
   return String(n).padStart(2, "0");
 }
@@ -71,7 +73,7 @@ export function sortByWhen(todos) {
 }
 
 export function formatWhen(todo) {
-  if (!todo.dueDate) return "No date";
+  if (!todo.dueDate) return i18n.t("date.noDate");
   const date = dateFromKey(todo.dueDate);
   const label = date.toLocaleDateString(undefined, {
     weekday: "short",
@@ -93,15 +95,14 @@ export function normalizeTimeInput(value) {
 /* ---------- Recurrence ---------- */
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-export const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-export const WEEKDAY_FULL = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
+export const WEEKDAY_KEYS = [
+  "sun",
+  "mon",
+  "tue",
+  "wed",
+  "thu",
+  "fri",
+  "sat",
 ];
 const ORDINALS = {
   1: "first",
@@ -221,41 +222,47 @@ export function formatRepeat(todo) {
   let text = "";
 
   if (todo.repeat.freq === "daily") {
-    text = interval === 1 ? "Daily" : `Every ${interval} days`;
+    text =
+      interval === 1
+        ? i18n.t("repeat.daily")
+        : i18n.t("repeat.everyDays", { count: interval });
   } else if (todo.repeat.freq === "weekly") {
     const weekdays = todo.repeat.weekdays || [];
     const names = [...weekdays]
       .sort((a, b) => a - b)
-      .map((day) => WEEKDAY_NAMES[day])
+      .map((day) => i18n.t(`weekday.${WEEKDAY_KEYS[day]}`))
       .join(", ");
-    if (interval === 1) text = names ? `Weekly on ${names}` : "Weekly";
-    else
+    if (interval === 1) {
+      text = names ? i18n.t("repeat.weeklyOn", { names }) : i18n.t("repeat.weekly");
+    } else {
       text = names
-        ? `Every ${interval} weeks on ${names}`
-        : `Every ${interval} weeks`;
+        ? i18n.t("repeat.everyWeeksOn", { count: interval, names })
+        : i18n.t("repeat.everyWeeks", { count: interval });
+    }
   } else if (todo.repeat.freq === "monthly") {
     if (todo.repeat.monthMode === "weekday") {
-      const nth = ORDINALS[todo.repeat.nth || 1] || "first";
-      const weekday =
-        WEEKDAY_FULL[todo.repeat.weekday != null ? todo.repeat.weekday : 0];
+      const nth = i18n.t(`nth.${ORDINALS[todo.repeat.nth || 1] || "first"}`);
+      const weekday = i18n.t(
+        `weekday.${WEEKDAY_KEYS[todo.repeat.weekday != null ? todo.repeat.weekday : 0]}`,
+      );
       text =
         interval === 1
-          ? `Monthly on the ${nth} ${weekday}`
-          : `Every ${interval} months on the ${nth} ${weekday}`;
+          ? i18n.t("repeat.monthlyOnThe", { nth, weekday })
+          : i18n.t("repeat.everyMonthsOnThe", { count: interval, nth, weekday });
     } else {
       const day =
         todo.repeat.monthDay ||
         (todo.dueDate ? dateFromKey(todo.dueDate).getDate() : 1);
       text =
         interval === 1
-          ? `Monthly on day ${day}`
-          : `Every ${interval} months on day ${day}`;
+          ? i18n.t("repeat.monthlyOnDay", { day })
+          : i18n.t("repeat.everyMonthsOnDay", { count: interval, day });
     }
   }
 
   if (todo.repeat.until) {
     const until = dateFromKey(todo.repeat.until);
-    if (until) text += `, until ${until.toLocaleDateString()}`;
+    if (until) text += i18n.t("repeat.until", { date: until.toLocaleDateString() });
   }
   return text;
 }

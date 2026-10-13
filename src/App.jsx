@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
 import { StatusBar, Style } from "@capacitor/status-bar";
@@ -53,6 +54,8 @@ function nextId(todos) {
 }
 
 function App() {
+  const { t, i18n } = useTranslation();
+  const lang = (i18n.resolvedLanguage || i18n.language || "en").split("-")[0];
   const [todos, setTodos] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("todos") || "[]").map(normalizeTodo);
@@ -115,6 +118,12 @@ function App() {
   useEffect(() => {
     activeTabRef.current = activeTab;
   }, [activeTab]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("dir", lang === "ar" ? "rtl" : "ltr");
+    document.documentElement.setAttribute("lang", lang);
+    document.title = t("appTitle");
+  }, [lang, t]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -311,7 +320,7 @@ function App() {
         {
           id,
           timeStart: new Date(Date.now()).toLocaleString(),
-          text: message === "" ? "New list" : message,
+          text: message === "" ? t("list.newList") : message,
           done: false,
           timeEnd: "",
           timeDeleted: "",
@@ -559,9 +568,9 @@ function App() {
   return (
     <div className={"app"}>
       <header>
-        <h1>ToDo App</h1>
+        <h1>{t("appTitle")}</h1>
         <p className="clock">
-          {now.toLocaleDateString()} {now.toLocaleTimeString()}
+          {now.toLocaleString(lang === "ar" ? "ar" : undefined)}
         </p>
       </header>
 
